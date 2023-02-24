@@ -200,9 +200,6 @@ public class Robot extends TimedRobot {
       SwerveDrive.setSwerveOutputs();
     }
 
-    System.out.println(SwerveDrive.BackRight.Steer.getSelectedSensorPosition());
-
-
     SmartDashboard.putNumber("Gyro", SwerveDrive.GyroRotation2d.getDegrees());
 
     // Controller One
