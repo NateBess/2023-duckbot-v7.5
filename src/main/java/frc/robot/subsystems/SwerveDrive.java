@@ -160,7 +160,8 @@ public class SwerveDrive extends SubsystemBase {
    */
   public void swerveDrive(Double X, Double Y, Double Spin, Double XYMod, Double SpinMod) {
     // Set the desired speeds for the robot, we also pass in the gyro angle for field oriented drive
-    Speeds = ChassisSpeeds.fromFieldRelativeSpeeds((Y * XYMod), (X * XYMod), (Spin * SpinMod), GyroRotation2d);
+    double speedMod = (0.20) + 1;
+    Speeds = ChassisSpeeds.fromFieldRelativeSpeeds((Y * XYMod * speedMod), (X * XYMod * speedMod), (Spin * SpinMod * speedMod), GyroRotation2d);
 
     // Convert overall robot speeds and angle into speeds and angles for each wheel module, referred to as module states
     ModuleStates = Kinematics.toSwerveModuleStates(Speeds);
@@ -212,7 +213,7 @@ public class SwerveDrive extends SubsystemBase {
   }
 
   public void setModuleStates(SwerveModuleState[] DesiredStates) {
-    SwerveDriveKinematics.desaturateWheelSpeeds(DesiredStates, 2);
+    SwerveDriveKinematics.desaturateWheelSpeeds(DesiredStates, 3);
     ModuleStates = DesiredStates;
     
     // Front left module state

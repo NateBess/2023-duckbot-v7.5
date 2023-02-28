@@ -40,6 +40,8 @@ public class Wheel extends SubsystemBase {
   public boolean IsInput;
   public SwerveModulePosition ModulePos;
 
+  // public AnalogEncoder AnalogData;
+
   /**
 	 * Class constructor for the Wheel class, initializes all variables, objects, and methods for the created Wheel object
 	 *

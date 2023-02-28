@@ -16,7 +16,9 @@ import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.math.trajectory.TrajectoryGenerator;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.trajectory.constraint.SwerveDriveKinematicsConstraint;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 
@@ -27,10 +29,12 @@ import java.util.Scanner;
 
 import javax.swing.plaf.synth.SynthScrollBarUI;
 
+import com.ctre.phoenix.motorcontrol.can.VictorSPX;
+
 import java.io.*;
 
 public class Autonomous extends SubsystemBase {
-  public Tracking Tracking;
+  private Tracking Track;
   private SwerveDrive Swerve;
   public String AutoFile;
   private File TrajFile;
@@ -42,22 +46,34 @@ public class Autonomous extends SubsystemBase {
   private List<String> Lines;
   private List<String> CurrentLine;
   private List<String> FileOrder;
-  private List<String> AutoOrder;
+  public List<String> AutoOrder;
   private List<Translation2d> Translation2ds;
   private List<Rotation2d> Rotation2ds;
   private List<Pose2d> Pose2ds;
   private List<Translation2d> MiddlePoints;
-  private List<SwerveControllerCommand> SwerveControllerCommands;
-  private Integer AutoStage;
+  public List<SwerveControllerCommand> SwerveControllerCommands;
+  public Integer AutoStage;
   private Integer StartIndex;
-  private Integer SwerveControllerCommandIndex;
-  private Boolean IsScheduled = false;
+  public Integer SwerveControllerCommandIndex;
+  public Boolean IsScheduled = false;
   private double MaxSwerveVel;
   private double MaxSwerveAccel;
 
-  public Autonomous(SwerveDrive SwerveDrive, Tracking Track) {
+    // private VictorSPX armMotor = new VictorSPX(9); // 0 is the RIO PWM port this is connected to
+
+    // // Claw open and close.
+    // public DoubleSolenoid doubleSolenoidOne = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 1);
+
+    // // Level 1 Solenoid
+    // public DoubleSolenoid doubleSolenoidTwo = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 2, 3);
+  
+    // // Level 2 Solenoid
+    // public DoubleSolenoid doubleSolenoidThree = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 4, 5);
+  
+
+  public Autonomous(SwerveDrive SwerveDrive, Tracking Tracking) {
     Swerve = SwerveDrive;
-    Tracking = Track;
+    Track = Tracking;
     Lines = new ArrayList<String>();
     CurrentLine = new ArrayList<String>();
     FileOrder = new ArrayList<String>();
@@ -71,6 +87,7 @@ public class Autonomous extends SubsystemBase {
     SwerveControllerCommandIndex = 0;
     MaxSwerveVel = 1;
     MaxSwerveAccel = 2;
+    
   }
 
   public void initTrajectory() throws FileNotFoundException {
@@ -110,15 +127,7 @@ public class Autonomous extends SubsystemBase {
       if (Index == 0) {
         if (CurrentLine.size() == 7) {
           FileOrder.add(CurrentLine.get(6));
-          // Create a copy of the point in order to fix an indexing error that would otherwise occur later
-          Translation2ds.add(new Translation2d(Double.parseDouble(CurrentLine.get(0)),Double.parseDouble(CurrentLine.get(1))));
-          if (AutoFile.contains("Red")) {
-            Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2))) + Math.PI));
-          }
-          if (AutoFile.contains("Blue")) {
-            Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2)))));
-          }
-          Pose2ds.add(new Pose2d(Translation2ds.get(Index), Rotation2ds.get(Index)));
+          addPointToLists();
         }
       }
       else {
@@ -128,30 +137,11 @@ public class Autonomous extends SubsystemBase {
         // This simplifies later code by having points for both the endpoint of this move and the beginning of the next
         if (CurrentLine.size() == 7) {
           FileOrder.add(CurrentLine.get(6));
-          Translation2ds.add(new Translation2d(Double.parseDouble(CurrentLine.get(0)),Double.parseDouble(CurrentLine.get(1))));
-          if (AutoFile.contains("Red")) {
-            Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2))) + Math.PI));
-          }
-          if (AutoFile.contains("Blue")) {
-            Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2)))));
-          }
-          Pose2ds.add(new Pose2d(Translation2ds.get(Index), Rotation2ds.get(Index)));
+          addPointToLists();
         }
       }
       
-      // Add the Translation2d of this point to the list
-      Translation2ds.add(new Translation2d(Double.parseDouble(CurrentLine.get(0)),Double.parseDouble(CurrentLine.get(1))));
-      // Check what alliance the auto is for, since Pathweaver doesn't take into account the alliance the robot is on
-      if (AutoFile.contains("Red")) {
-        // Add the Rotation2d of this point to the list, and invert it to solve the previously stated issue
-        Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2))) + Math.PI));
-      }
-      if (AutoFile.contains("Blue")) {
-        // Add the Rotation2d of this point to the list
-        Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2)))));
-      }
-      // Also add the Pose2d of this point to the list, for the endpoints
-      Pose2ds.add(new Pose2d(Translation2ds.get(Index), Rotation2ds.get(Index)));
+      addPointToLists();
       CurrentLine.clear();
     }
     // Set the position of the odometry to the starting position of the auto
@@ -188,6 +178,22 @@ public class Autonomous extends SubsystemBase {
     System.out.println("Start Y:" + Translation2ds.get(0).getY());
   }
 
+  private void addPointToLists() {
+    // Add the Translation2d of the point to the list
+    Translation2ds.add(new Translation2d(Double.parseDouble(CurrentLine.get(0)),Double.parseDouble(CurrentLine.get(1))));
+    // Check what alliance the auto is for, since Pathweaver doesn't take into account the alliance the robot is on
+    if (AutoFile.contains("Red")) {
+      // Add the Rotation2d of the point to the list, and invert it to solve the previously stated issue
+      Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2))) + Math.PI));
+    }
+    if (AutoFile.contains("Blue")) {
+      // Add the Rotation2d of the point to the list
+      Rotation2ds.add(new Rotation2d(Math.atan2(Double.parseDouble(CurrentLine.get(3)), Double.parseDouble(CurrentLine.get(2)))));
+    }
+    // Also add the Pose2d of the point to the list, for the endpoints
+    Pose2ds.add(new Pose2d(Translation2ds.get(Translation2ds.size() - 1), Rotation2ds.get(Rotation2ds.size() - 1)));
+  }
+
   public void runAutonomous() {
     if (AutoStage <= AutoOrder.size() - 1) {
       if (AutoOrder.get(AutoStage) == "Move") {
@@ -210,8 +216,10 @@ public class Autonomous extends SubsystemBase {
       }
     }
     if (AutoStage <= AutoOrder.size() - 1) {
-      if (AutoOrder.get(AutoStage) == "Grab Cube") {
+      if (AutoOrder.get(AutoStage) == "BlueA1 Drop Cube") {
         System.out.println("Grab Cube");
+
+
         AutoStage++;
       }
     }

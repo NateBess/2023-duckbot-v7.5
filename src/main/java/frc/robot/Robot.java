@@ -5,6 +5,7 @@
 package frc.robot;
 
 
+import edu.wpi.first.wpilibj.AnalogEncoder;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Filesystem;
@@ -22,17 +23,24 @@ import java.io.FileNotFoundException;
 
 import javax.lang.model.util.ElementScanner14;
 
+import com.ctre.phoenix.motorcontrol.VictorSPXControlMode;
+import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.SparkMaxPIDController;
 import com.revrobotics.CANSparkMax.ControlType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.SparkMaxRelativeEncoder;
+
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.*;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import frc.robot.subsystems.Autonomous;
 import frc.robot.subsystems.SwerveDrive;
 import frc.robot.subsystems.Tracking;
+
+import static edu.wpi.first.wpilibj.DoubleSolenoid.Value.*;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 
 
 
@@ -41,8 +49,7 @@ public class Robot extends TimedRobot {
   private Joystick LeftStick;
   private Joystick RightStick;
 
-  private XboxController ControllerTwo;
-  private XboxController ControllerOne;
+  private AnalogEncoder AnalogData;
 
   private double ControllerOneX;
   private double ControllerOneY;
@@ -72,10 +79,31 @@ public class Robot extends TimedRobot {
 
   private Compressor Pump;
   private DoubleSolenoid Grabber;
+  
+  private XboxController ControllerOne = new XboxController(0);
+  private XboxController ControllerTwo = new XboxController(1);
+
+  private VictorSPX armMotor = new VictorSPX(9); // 0 is the RIO PWM port this is connected to
+
+  // Claw open and close.
+  public DoubleSolenoid doubleSolenoidOne = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 1);
+
+  // Level 1 Solenoid
+  public DoubleSolenoid doubleSolenoidTwo = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 2, 3);
+
+  // Level 2 Solenoid
+  public DoubleSolenoid doubleSolenoidThree = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 4, 5);
+
+
 
 
   @Override
   public void robotInit() {
+
+    AnalogData = new AnalogEncoder(0);
+
+    CameraServer.startAutomaticCapture();
+
     Inst = NetworkTableInstance.getDefault();
 
     AutoChooser = new SendableChooser<String>();
@@ -83,7 +111,7 @@ public class Robot extends TimedRobot {
     for (Integer Index = 0; Index <= AutoNames.length - 1; Index++) {
       AutoChooser.addOption(AutoNames[Index], AutoNames[Index]);
     }
-    AutoChooser.setDefaultOption("BlueTest", "BlueTest");
+    AutoChooser.setDefaultOption("RedCircleTest1", "RedCircleTest1");
     SmartDashboard.putData("AutoChooser", AutoChooser);
 
     LiveWindow = Shuffleboard.getTab("LiveWindow");
@@ -120,8 +148,8 @@ public class Robot extends TimedRobot {
     ArmAnglePIDController.setD(0);
 
     Pump = new Compressor(0, PneumaticsModuleType.CTREPCM);
-    Grabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 2, 3);
-    Grabber.set(Value.kForward);
+    // Grabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 2, 3);
+    // Grabber.set(Value.kForward);
 
     // Instantiate an object for each class
     SwerveDrive = new SwerveDrive();
@@ -131,8 +159,9 @@ public class Robot extends TimedRobot {
     SwerveDrive.GyroRotation2d = SwerveDrive.Gyro.getRotation2d();
 
     // Call SwerveDrive methods, their descriptions are in the SwerveDrive.java file
+    // SwerveDrive.initMotorControllers(1, 2, 7, 8, 5, 6, 3, 4);
     SwerveDrive.initMotorControllers(1, 2, 7, 8, 5, 6, 3, 4);
-    SwerveDrive.setPID(0.000175, 0.000005, 0.0000004, 0.0, 8.0, 0.01, 0.01);
+    SwerveDrive.setPID(0.000175, 0.0000007, 0.0000004, 0.0, 8.1, 0.01, 0.01);
     // SwerveDrive.setPID(0.000175, 0.000001, 0.0000004, 0.0, 8.0, 0.01, 0.01);
     SwerveDrive.initKinematicsAndOdometry();
     PrevAuto = AutoChooser.getSelected();
@@ -161,7 +190,7 @@ public class Robot extends TimedRobot {
       }
       PrevAuto = AutoChooser.getSelected();
     }
-    SwerveDrive.setPID(FFGain.getEntry().getDouble(0), PGain.getEntry().getDouble(0), IGain.getEntry().getDouble(0), DGain.getEntry().getDouble(0), 8.0, 0.01, 0.01);
+    // SwerveDrive.setPID(FFGain.getEntry().getDouble(0), PGain.getEntry().getDouble(0), IGain.getEntry().getDouble(0), DGain.getEntry().getDouble(0), 8.0, 0.01, 0.01);
   }
  
   @Override
@@ -195,7 +224,7 @@ public class Robot extends TimedRobot {
     }
     else {
       // Call swerveDrive() method, to do all the math and outputs for swerve drive
-      SwerveDrive.swerveDrive(Math.pow(ControllerOneX, 3) * 2, (Math.pow(ControllerOneY, 3) * -2), (Math.pow(ControllerOneTwist, 3) * 2.5), (1.00), (1.00));
+      SwerveDrive.swerveDrive(Math.pow(ControllerOneX, 3) * 3, (Math.pow(ControllerOneY, 3) * -3), (Math.pow(ControllerOneTwist, 3) * 2.5), (1 - ((ControllerOne.getLeftTriggerAxis() + 1) / 2)), (1 - ((ControllerOne.getRightTriggerAxis() + 1) / 2)));
       SwerveDrive.setVariablesAndOptimize();
       SwerveDrive.setSwerveOutputs();
     }
@@ -211,29 +240,37 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("BackLeft Absolute Output", SwerveDrive.BackLeft.Steer.getSelectedSensorPosition());
     SmartDashboard.putNumber("BackRight Absolute Output", SwerveDrive.BackRight.Steer.getSelectedSensorPosition());
 
+
+    SmartDashboard.putNumber("Rio Encoder Value", AnalogData.getAbsolutePosition());
+    System.out.println(SwerveDrive.FrontRight.DrivePIDController.getP());
+
     MotorCurrents = new double[] {SwerveDrive.FrontLeft.Drive.getOutputCurrent(), SwerveDrive.FrontRight.Drive.getOutputCurrent(), SwerveDrive.BackLeft.Drive.getOutputCurrent(), SwerveDrive.BackRight.Drive.getOutputCurrent()};
     SmartDashboard.putNumberArray("RobotDrive Motors", MotorCurrents);
   
-    if (RightStick.getRawButtonPressed(2) == true) {
-      SwerveDrive.Gyro.reset();
-      ArmAngle.getEncoder().setPosition(0);
-      ArmExtend.getEncoder().setPosition(0);
+    // Claw open / close if statements.
+    if (ControllerTwo.getLeftBumperPressed()) {
+      doubleSolenoidOne.set(kForward);
     }
-    if (LeftStick.getRawButtonPressed(4)) {
-      ArmAnglePIDController.setReference(-22, ControlType.kPosition);
+    if (ControllerTwo.getRightBumperPressed()) {
+      doubleSolenoidOne.set(kReverse);
     }
-    else if (LeftStick.getRawButtonPressed(6)) {
-      ArmAnglePIDController.setReference(0, ControlType.kPosition);
+  
+    // Level 1 & 2 Buttons
+    if (ControllerTwo.getYButtonPressed()) {
+      doubleSolenoidTwo.set(kForward);
+      doubleSolenoidThree.set(kForward);
+      
     }
-    if (LeftStick.getRawButtonPressed(5)) {
-      ArmExtendPIDController.setReference(0, ControlType.kPosition);
+    if (ControllerTwo.getAButtonPressed()) {
+      doubleSolenoidTwo.set(kReverse);
+      doubleSolenoidThree.set(kReverse);
     }
-    else if (LeftStick.getRawButtonPressed(3)) {
-      ArmExtendPIDController.setReference(56, ControlType.kPosition);
+
+    if (ControllerTwo.getBButtonPressed()) {
+      doubleSolenoidTwo.set(kReverse);
+      doubleSolenoidThree.set(kForward);
     }
-    if (LeftStick.getRawButtonPressed(1)) {
-      Grabber.toggle();
-    }
+    armMotor.set(VictorSPXControlMode.PercentOutput, ControllerTwo.getLeftX()*.375);
   }
 
   //Autonomous right away
