@@ -91,7 +91,7 @@ public class Autonomous extends SubsystemBase {
   }
 
   public void initTrajectory() throws FileNotFoundException {
-    TrajFile = Filesystem.getDeployDirectory().toPath().resolve("output/paths/" + AutoFile).toFile();
+    TrajFile = Filesystem.getDeployDirectory().toPath().resolve("output/" + AutoFile).toFile();
     AutoReader = new Scanner(TrajFile);
     SwerveDriveMaxSpeed = new SwerveDriveKinematicsConstraint(Swerve.Kinematics, MaxSwerveVel);
     PIDConstraints = new Constraints(MaxSwerveVel, MaxSwerveAccel);
@@ -210,14 +210,14 @@ public class Autonomous extends SubsystemBase {
       }
     }
     if (AutoStage <= AutoOrder.size() - 1) {
-      if (AutoOrder.get(AutoStage) == "Grab Cone") {
-        System.out.println("Grab Cone");
+      if (AutoOrder.get(AutoStage) == "StartTest") {
+        System.out.println("Stage1");
         AutoStage++;
       }
     }
     if (AutoStage <= AutoOrder.size() - 1) {
-      if (AutoOrder.get(AutoStage) == "BlueA1 Drop Cube") {
-        System.out.println("Grab Cube");
+      if (AutoOrder.get(AutoStage) == "EndTest") {
+        System.out.println("Stage2");
 
 
         AutoStage++;

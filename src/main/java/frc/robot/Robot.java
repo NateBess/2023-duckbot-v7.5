@@ -107,11 +107,12 @@ public class Robot extends TimedRobot {
     Inst = NetworkTableInstance.getDefault();
 
     AutoChooser = new SendableChooser<String>();
-    AutoNames = Filesystem.getDeployDirectory().toPath().resolve("output/paths").toFile().list();
+    AutoNames = Filesystem.getDeployDirectory().toPath().resolve("output").toFile().list();
     for (Integer Index = 0; Index <= AutoNames.length - 1; Index++) {
       AutoChooser.addOption(AutoNames[Index], AutoNames[Index]);
     }
-    AutoChooser.setDefaultOption("RedCircleTest1", "RedCircleTest1");
+    AutoChooser.setDefaultOption("default", "ATest1");
+
     SmartDashboard.putData("AutoChooser", AutoChooser);
 
     LiveWindow = Shuffleboard.getTab("LiveWindow");
@@ -209,13 +210,13 @@ public class Robot extends TimedRobot {
     ControllerOneTwist = ControllerOne.getRightX();
 
     // Create deadzones on the joysticks, to prevent stick drift
-    if (Math.abs(ControllerOneX) < 0.03) {
+    if (Math.abs(ControllerOneX) < 0.10) {
       ControllerOneX = 0.0;
     }
-    if (Math.abs(ControllerOneY) < 0.03) {
+    if (Math.abs(ControllerOneY) < 0.10) {
       ControllerOneY = 0.0;
     }
-    if (Math.abs(ControllerOneTwist) < 0.03) {
+    if (Math.abs(ControllerOneTwist) < 0.10) {
       ControllerOneTwist = 0.0;
     }
 
@@ -224,7 +225,7 @@ public class Robot extends TimedRobot {
     }
     else {
       // Call swerveDrive() method, to do all the math and outputs for swerve drive
-      SwerveDrive.swerveDrive(Math.pow(ControllerOneX, 3) * 3, (Math.pow(ControllerOneY, 3) * -3), (Math.pow(ControllerOneTwist, 3) * 2.5), (1 - ((ControllerOne.getLeftTriggerAxis() + 1) / 2)), (1 - ((ControllerOne.getRightTriggerAxis() + 1) / 2)));
+      SwerveDrive.swerveDrive(Math.pow(ControllerOneX, 3) * 3, (Math.pow(ControllerOneY, 3) * -3), (Math.pow(ControllerOneTwist, 3) * 3.0), (1 - ((ControllerOne.getLeftTriggerAxis() + 1) / 2)), (1 - ((ControllerOne.getRightTriggerAxis() + 1) / 2)));
       SwerveDrive.setVariablesAndOptimize();
       SwerveDrive.setSwerveOutputs();
     }
